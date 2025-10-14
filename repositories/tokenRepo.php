@@ -17,25 +17,32 @@ return JWT::encode(
     );
 }   
 
-
-function createRefreshToken($user){
+function createRefreshToken($user) {
     global $connect;
-   return  bin2hex(random_bytes(64)); // secure random string
-    $expiresAt = date('Y-m-d H:i:s', strtotime('+10 days')); 
+
+    $refreshToken = bin2hex(random_bytes(64)); 
+    $expiresAt = date('Y-m-d H:i:s', strtotime('+10 days'));
     $createdAt = date('Y-m-d H:i:s');
 
-    
-    $insertQuery = "INSERT INTO refresh_tokens (user_id, token, expires_at, created_at, is_revoked)
-                    VALUES (:uid, :token, :exp, :created_at, :revoked)";
+    try {
+        $insertQuery = "INSERT INTO refresh_tokens (user_id, token, expires_at, created_at, is_revoked)
+                        VALUES (:uid, :token, :exp, :created_at, :revoked)";
 
-    $insertStmt = $connect->prepare($insertQuery);
-    $insertStmt->execute([
-    ':uid' => $user['user_id'],
-    ':token' => $refreshToken,
-    ':exp' => $expiresAt,
-    ':created_at' => $createdAt,
-    ':revoked' => 0
-]);
+        $insertStmt = $connect->prepare($insertQuery);
+        $insertStmt->execute([
+            ':uid' => $user['user_id'],
+            ':token' => $refreshToken,
+            ':exp' => $expiresAt,
+            ':created_at' => $createdAt,
+            ':revoked' => 0
+        ]);
+
+      
+        return $refreshToken;
+
+    } catch (PDOException $e) {
+        jsonResponse("failed", $e->getMessage(), 500);
+    }
 }
 
 
