@@ -211,4 +211,29 @@ function DeleteProduct($product_id){
         jsonResponse("error", "Database error occurred".$e, 500);
     }
 }
+
+function RestoreProduct($product_id) {
+    global $connect;
+
+
+    $check = $connect->prepare("SELECT * FROM products WHERE product_id = :id AND is_deleted = 1");
+    $check->execute([':id' => $product_id]);
+    $product = $check->fetch(PDO::FETCH_ASSOC);
+
+    if (!$product) {
+        jsonResponse('error', 'Product not found or not deleted', 404);
+    }
+
+    
+    $restore = $connect->prepare("UPDATE products SET is_deleted = 0, updated_at = NOW() WHERE product_id = :id");
+    $restore->execute([':id' => $product_id]);
+
+    if ($restore->rowCount() > 0) {
+        jsonResponse('success', 'Product restored successfully', 200);
+    } else {
+        jsonResponse('error', 'Failed to restore product', 500);
+    }
+}
+
+
 ?>
