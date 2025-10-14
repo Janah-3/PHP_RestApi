@@ -32,8 +32,6 @@ if($_SERVER['REQUEST_METHOD'] =='GET'){
 
     AddProduct($name, $description, $price, $categoryid, $file);
 
-}else if($_SERVER['REQUEST_METHOD'] =='PUT') {
-
 }
 else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
     if (isset($_GET['delete'])) {
@@ -63,6 +61,6 @@ else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
 
 
 }else{
-    echo "invalid request method ";
+    jsonResponse("failed","invalid request method ",400);
 }
 ?>
