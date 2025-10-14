@@ -18,8 +18,13 @@ function findUserByEmail($email) {
 }
 
 
-function createUser($name,$email,$password,$confirmPassword){
+function createUser($name,$email,$password,$confirmPassword,$role="user"){
     global $connect;
+
+     $allowedRoles = ['admin', 'editor', 'user'];
+    if (!in_array($role, $allowedRoles)) {
+        jsonResponse('error', 'Invalid role. Allowed roles: ' . implode(', ', $allowedRoles), 400);
+    }
 
     $user=findUserByEmail($email);
     if($password != $confirmPassword){
@@ -33,10 +38,15 @@ function createUser($name,$email,$password,$confirmPassword){
 
     $hashPassword = password_hash($password, PASSWORD_BCRYPT);
 
-    $insertQ="insert into users  (username, email, password) 
-               VALUES (:name, :email, :password)"; 
+    $insertQ="insert into users  (username, email, password,role) 
+               VALUES (:name, :email, :password ,:role)"; 
     $stmt = $connect-> prepare($insertQ) ;
-    $stmt ->execute(['name' => $name , 'email' => $email , 'password' => $hashPassword]);  
+    $stmt ->execute(['name' => $name , 'email' => $email , 'password' => $hashPassword ,':role'=>$role]);  
+
+    if($role=="user"){
+   $mailBody="Thank you for registering with us! Your account has been created successfully. We’re excited to have you on board.<br> <p>Best regards,<br>The AuthoStore Team</p>";
+   MailMessage($email,'Welcome to AuthoStore',$mailBody);
+    }
 
     jsonResponse("success" ,"User registered successfully",201);
 
@@ -67,7 +77,7 @@ function createResetCode($user){
 
 }
 
-function resetCodeMail($email,$reset_code){
+function MailMessage($email,$subject,$body){
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';
@@ -77,14 +87,14 @@ function resetCodeMail($email,$reset_code){
     $mail->SMTPSecure = 'tls';
     $mail->Port       = 587;
 
-    $mail->setFrom('jojojana233@gmail.com', 'DFR');
+    $mail->setFrom('jojojana233@gmail.com', 'AuthoStore');
     $mail->addAddress($email);
     $mail->isHTML(true);
-    $mail->Subject = 'Your Password Reset Code';
-    $mail->Body    = "<p>Your password reset code is: <b>$reset_code</b></p><p>This code expires in 10 minutes.</p>";
+    $mail->Subject = $subject;
+    $mail->Body    = $body;
     $mail->send();
     
-    jsonResponse("success" ,"Reset code sent to email",200);
+    jsonResponse("success" ,"email sent successfully",200);
 }
 
 function checkCodeValidation($code){
