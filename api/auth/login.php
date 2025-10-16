@@ -16,12 +16,11 @@ validateFields($data, [ 'email', 'password']);
 validateEmail($data['email']);
 
   $user=findUserByEmail($data['email']);
-
-  $is_passCorrect=verifyPassword($user, $data['password']) ;
+  
+  $is_passCorrect = password_verify($data['password'], $user['password']);
    
   if(!$user || !$is_passCorrect){
     jsonResponse("failed","invaild credentials",401);
-    exit;
   }
 
   $accessToken= createAccessToken($user);

@@ -52,7 +52,13 @@ function revokeRefreshToken($refreshToken) {
     $update=$connect->prepare($updateToken);
     $update->execute([':Token' => $refreshToken]);
 
-    return $update->rowCount();
+    $is_revoked= $update->rowCount();
+
+      if ($is_revoked > 0) {
+        jsonResponse("success", "Logged out successfully", 200);
+    } else {
+        jsonResponse("error", "Invalid or already revoked token", 400);
+    }
 
 }
 

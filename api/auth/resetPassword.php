@@ -10,7 +10,8 @@ $data= json_decode(file_get_contents("php://input"),true);
 validateFields($data,['code','newPassword']);
 
 $user_id = checkCodeValidation($data['code']);
-updatePassword($data['newPassword'],$user_id);
+
+updatePassword($data['newPassword'],$user_id,$data['code']);
 
 }catch(Throwable $error)
 {

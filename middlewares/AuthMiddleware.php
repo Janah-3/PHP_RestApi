@@ -16,15 +16,24 @@ function Is_Authenticated() {
     }
 
     $authHeader = $headers['Authorization'];
-    $token = str_replace('Bearer ', '', $authHeader); // remove 'Bearer ' prefix
+    $token = str_replace('Bearer ', '', $authHeader); 
 
     try {
         $decoded = JWT::decode($token, new Key(JWT_SECRET_KEY, 'HS256'));
-        return $decoded; // contains user info, role, etc.
+        return $decoded; 
     } catch (Exception $e) {
        
-        jsonResponse("error",'Invalid or expired token'.$e,401);
+        jsonResponse("error",'Invalid or expired token',401);
     }
         
+}
+
+
+function requireRole($roles = []) {
+    $userData = Is_Authenticated();
+    if (!in_array($userData->role, $roles)) {
+        jsonResponse('error', 'Access denied', 403);
+    }
+    return $userData;
 }
 ?>

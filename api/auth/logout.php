@@ -2,22 +2,18 @@
 require_once __DIR__ . '/../../helpers/Validator.php';
 require_once __DIR__ . '/../../helpers/Response.php';
 require_once __DIR__ . '/../../repositories/tokenRepo.php';
+require_once __DIR__ . '/../../middlewares/AuthMiddleware.php';
 
 
 try{
 validateRequestMethod('POST');
+Is_Authenticated();
+
 $data=json_decode(file_get_contents("php://input"),true);
 validateFields($data,['refreshToken']);
 
+ revokeRefreshToken($data['refreshToken']);
 
-
- $is_revoked=revokeRefreshToken($data['refreshToken']);
-
-    if ($is_revoked > 0) {
-        jsonResponse("success", "Logged out successfully", 200);
-    } else {
-        jsonResponse("error", "Invalid or already revoked token", 400);
-    }
 
 }catch(Throwable $error)
 {

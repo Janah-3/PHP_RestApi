@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ ."/../Config/connection.php";
 require_once __DIR__ . '/../helpers/Validator.php';
+require_once __DIR__ . '/categoriesRepo.php';
 
 
 function GetAllProducts() {
@@ -101,6 +102,8 @@ function AddProduct($name, $description, $price, $categoryid, $image)
 
     try {
 
+        GetCategoryById($categoryid);
+
         $insert = $connect->prepare("
             INSERT INTO products 
             (name, description, price, category_id, image_url, is_deleted, created_by, created_at, updated_at)
@@ -140,14 +143,8 @@ function updateProduct($product_id, $data) {
         $params = [':product_id' => $product_id];
 
         if(isset($data['category_id'])){
-        $checkIfCatExists=$connect->prepare("select count(*) from categories where id = :category_id");
-        $checkIfCatExists->execute([':category_id' => $data['category_id']]);
-       $num = $checkIfCatExists->fetchColumn();
-
-        if($num==0){
-            jsonResponse('failed','category does not exist',404);
-        }
-    }
+       GetCategoryById($data['category_id']);
+       }
 
         
         GetProductById($product_id);

@@ -4,10 +4,7 @@ require_once __DIR__ . '/../helpers/Response.php';
 require_once __DIR__ . '/../middlewares/AuthMiddleware.php';
 
 
- $userData=Is_Authenticated();
-if ($userData->role != "admin" && $userData->role != "editor") {
-    jsonResponse('error', 'Access denied', 403);
-}
+
 if($_SERVER['REQUEST_METHOD'] =='GET'){
    
     if (isset($_GET['id'])) {
@@ -23,6 +20,7 @@ if($_SERVER['REQUEST_METHOD'] =='GET'){
 
 
 }else if($_SERVER['REQUEST_METHOD'] =='POST'){
+    $userData = requireRole(['admin', 'editor']);
 
     $name = $_POST['name'] ?? '';
     $price = $_POST['price'] ?? '';
@@ -35,46 +33,33 @@ if($_SERVER['REQUEST_METHOD'] =='GET'){
 }
 else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
 
-     $data = json_decode(file_get_contents('php://input'), true);
+    if (isset($_GET['action']) && $_GET['action'] === 'delete') {
 
-    if (isset($_GET['delete'])) {
-    if ($userData->role != "admin") {
-    jsonResponse('error', 'Access denied', 403);
+        requireRole(['admin']);
 
-    } 
-    
-     if ($data === null) {
-         jsonResponse('error', 'Invalid JSON data', 400);
-    }
+        if (!isset($_GET['product_id']) || !is_numeric($_GET['product_id'])) {
+            jsonResponse('error', 'Valid product ID is required', 400);
+        }
+   
+         deleteProduct($_GET['product_id']) ;
 
-    validateFields($data, ['product_id']);
-    
-    DeleteProduct($data['product_id']);
-
+   
     }else if (isset($_GET['action']) && $_GET['action'] === 'restore') {
-    
-    if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-        jsonResponse('error', 'Valid product ID is required', 400);
-    }
+        requireRole(['admin']);
 
+        if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+           jsonResponse('error', 'Valid product ID is required', 400);
+        }
 
-     if ($userData->role !== 'admin') {
-        jsonResponse('error', 'Access denied', 403);
-    }
+        RestoreProduct($_GET['id']);
 
-
-    $product_id = $_GET['id'];
-    RestoreProduct($product_id);
-
-} else{
-
-        $data = json_decode(file_get_contents('php://input'), true);
+    } else{
+         $userData = requireRole(['admin', 'editor']);
+         $data = json_decode(file_get_contents('php://input'), true);
          validateFields($data, ['product_id']);
 
-        updateProduct($data['product_id'],$data);
+         updateProduct($data['product_id'],$data);
     }
-
-     
 
 
 

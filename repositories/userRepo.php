@@ -8,12 +8,11 @@ use PHPMailer\PHPMailer\Exception;
 
 
 
-
 function findUserByEmail($email) {
     global $connect;
-    $query = "SELECT * FROM users WHERE email = ? LIMIT 1";
+    $query = "SELECT * FROM users WHERE email = :email LIMIT 1";
     $stmt = $connect->prepare($query);
-    $stmt->execute([$email]);
+    $stmt->execute([':email'=>$email]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
@@ -36,26 +35,24 @@ function createUser($name,$email,$password,$confirmPassword,$role="user"){
        jsonResponse("failed" , "Email already exists",409);
     }
 
+    validatePassword($password);
+
+
     $hashPassword = password_hash($password, PASSWORD_BCRYPT);
 
-    $insertQ="insert into users  (username, email, password,role) 
-               VALUES (:name, :email, :password ,:role)"; 
-    $stmt = $connect-> prepare($insertQ) ;
-    $stmt ->execute(['name' => $name , 'email' => $email , 'password' => $hashPassword ,':role'=>$role]);  
+    $insertQ=$connect-> prepare("insert into users  (username, email, password,role) VALUES (:name, :email, :password ,:role)"); 
+    $insertQ ->execute([':name' => $name , ':email' => $email , ':password' => $hashPassword ,':role'=>$role]);  
 
     if($role=="user"){
-   $mailBody="Thank you for registering with us! Your account has been created successfully. We’re excited to have you on board.<br> <p>Best regards,<br>The AuthoStore Team</p>";
-   MailMessage($email,'Welcome to AuthoStore',$mailBody);
+         $mailBody="Thank you for registering with us! Your account has been created successfully. We’re excited to have you on board.<br> <p>Best regards,<br>The AuthoStore Team</p>";
+         MailMessage($email,'Welcome to AuthoStore',$mailBody);
     }
 
     jsonResponse("success" ,"User registered successfully",201);
 
 }
 
- function verifyPassword($user, $password) {
-    return password_verify($password, $user['password']);
-
-}
+ 
 
 function createResetCode($user){
   global $connect;
@@ -73,7 +70,12 @@ function createResetCode($user){
     'expires' => $expires_at
   ]);
 
-  return $reset_code;
+  
+   $mailBody="<p>Your password reset code is: <b>$reset_code</b></p><p>This code expires in 10 minutes.</p>";
+
+   MailMessage($user['email'],'Your Password Reset Code',$mailBody);
+
+   jsonResponse("success" , "reset code sent successfully",200);
 
 }
 
@@ -92,9 +94,13 @@ function MailMessage($email,$subject,$body){
     $mail->isHTML(true);
     $mail->Subject = $subject;
     $mail->Body    = $body;
+    try {
     $mail->send();
+    }catch (Exception $e) {
+    jsonResponse("failed", "Email could not be sent. Error: " . $mail->ErrorInfo, 500);
+    }
     
-    jsonResponse("success" ,"email sent successfully",200);
+    
 }
 
 function checkCodeValidation($code){
@@ -123,12 +129,14 @@ return $result['user_id'];
 }
 
 
-function updatePassword($newPassword , $user_id){
+function updatePassword($newPassword , $user_id,$code){
    global $connect;
+
+ validatePassword($newPassword);
 
   $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-  $updatePass = "UPDATE users SET password = :password WHERE id = :id";
+  $updatePass = "UPDATE users SET password = :password WHERE user_id = :id";
   $stmt = $connect->prepare($updatePass);
   $stmt->execute([':password' => $hashedPassword,':id' => $user_id]);
 
@@ -142,7 +150,7 @@ if ($stmt->rowCount() > 0) {
     $stmt->execute([':code' => $code]);
 
 } else {
-    jsonResponse("failed" , "password unchanged",402);
+    jsonResponse("failed" , "password unchanged",400);
 }
 }
 

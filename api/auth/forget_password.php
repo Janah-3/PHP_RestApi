@@ -18,8 +18,6 @@ if (!$user)
 }
 
 $reset_code = createResetCode($user);
-$mailBody="<p>Your password reset code is: <b>$reset_code</b></p><p>This code expires in 10 minutes.</p>";
-MailMessage($data['email'],'Your Password Reset Code',$mailBody);
 
 
 } catch (Throwable $error) {

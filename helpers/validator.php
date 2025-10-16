@@ -79,6 +79,22 @@ function validateAndUploadImage($file, $uploadDir = __DIR__ .'/../uploads/produc
 
 
 
+function validatePassword($password) {
+    if (strlen($password) < 8) {
+        jsonResponse("failed", "Password must be at least 8 characters long", 400);
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+        jsonResponse("failed", "Password must include at least one uppercase letter", 400);
+    }
+    if (!preg_match('/[a-z]/', $password)) {
+        jsonResponse("failed", "Password must include at least one lowercase letter", 400);
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        jsonResponse("failed", "Password must include at least one number", 400);
+    }
+   
+    return true;
+}
 
 
 ?>
