@@ -5,6 +5,16 @@ require_once __DIR__ . '/../config/config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+require 'vendor/autoload.php';
+
+use Predis\Client;
+
+$redis = new Client([
+    'scheme' => 'tcp',
+    'host'   => '127.0.0.1',
+    'port'   => 6379,
+]);
+$redis->connect('127.0.0.1', 6379);
 
 
 
@@ -55,23 +65,15 @@ function createUser($name,$email,$password,$confirmPassword,$role="user"){
  
 
 function createResetCode($user){
-  global $connect;
-  $reset_code = mt_rand(100000, 999999);
-  $expires_at = date("Y-m-d H:i:s", strtotime("+10 minutes"));
 
+global $redis;
 
-  $insertCode = "INSERT INTO password_resets (user_id, user_email, reset_code, expires_at)
-               VALUES (:user_id, :email, :code, :expires)";
-  $stmt = $connect->prepare($insertCode);
-  $stmt->execute([
-    'user_id' => $user['user_id'],
-    'email' => $user['email'],
-    'code' => $reset_code,
-    'expires' => $expires_at
-  ]);
+$otp=mt_rand(100000, 999999);
 
+$key="otp:$otp";
+$redis->Setex($key, 600 , $user['user_id']);
   
-   $mailBody="<p>Your password reset code is: <b>$reset_code</b></p><p>This code expires in 10 minutes.</p>";
+   $mailBody="<p>Your password reset code is: <b>$otp</b></p><p>This code expires in 10 minutes.</p>";
 
    MailMessage($user['email'],'Your Password Reset Code',$mailBody);
 
@@ -104,33 +106,23 @@ function MailMessage($email,$subject,$body){
 }
 
 function checkCodeValidation($code){
-global $connect;
-$StoredCode = "SELECT id, user_email , user_id, reset_code, expires_at FROM password_resets WHERE reset_code = :code ORDER BY expires_at DESC LIMIT 1";
-$stmt = $connect->prepare($StoredCode);
-$stmt->execute([':code' => $code]);
-$result = $stmt->fetch(PDO::FETCH_ASSOC);
+global $redis ;
 
+$key ="otp:$code";
+$user_id = $redis->get($key);
 
+ if (!$user_id) {
+        jsonResponse("failed", "Invalid or expired code", 400);
+    }
 
-if (!$result ) {
-
-    jsonResponse("failed" , "Invalid code ",400);
-}
-
-$nowDateTime=new DateTime();
-$expiryDateTime = new DateTime($result['expires_at']);
-
-
-if($nowDateTime > $expiryDateTime) {
-    jsonResponse("failed" , "the code is expired ",400);
-}
-return $result['user_id'];
+return $user_id;
 
 }
 
 
 function updatePassword($newPassword , $user_id,$code){
-   global $connect;
+   global $connect , $redis;
+   
 
  validatePassword($newPassword);
 
@@ -145,9 +137,8 @@ if ($stmt->rowCount() > 0) {
    
     jsonResponse("success" , "Password updated successfully",200);
 
-    $deleteReset = "DELETE FROM password_resets WHERE reset_code = :code";
-    $stmt = $connect->prepare($deleteReset);
-    $stmt->execute([':code' => $code]);
+
+    $redis ->del("otp:$code");
 
 } else {
     jsonResponse("failed" , "password unchanged",400);

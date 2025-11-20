@@ -54,6 +54,7 @@ else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
         RestoreProduct($_GET['id']);
 
     } else{
+        requireRole(['admin','editor']);
          $userData = requireRole(['admin', 'editor']);
          $data = json_decode(file_get_contents('php://input'), true);
          validateFields($data, ['product_id']);
