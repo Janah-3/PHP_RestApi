@@ -2,6 +2,9 @@
 require_once __DIR__ . '/../repositories/productsRepo.php';
 require_once __DIR__ . '/../helpers/Response.php';
 require_once __DIR__ . '/../middlewares/AuthMiddleware.php';
+require_once __DIR__ . '/../middlewares/RateLimiter.php';
+
+
 
 
 
@@ -22,6 +25,8 @@ if($_SERVER['REQUEST_METHOD'] =='GET'){
 }else if($_SERVER['REQUEST_METHOD'] =='POST'){
     $userData = requireRole(['admin', 'editor']);
 
+    RateLimiter($userData['user_id']);
+
     $name = $_POST['name'] ?? '';
     $price = $_POST['price'] ?? '';
     $description = $_POST['description'] ?? '';
@@ -32,6 +37,8 @@ if($_SERVER['REQUEST_METHOD'] =='GET'){
 
 }
 else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
+      $userData = requireRole(['admin', 'editor']); 
+    RateLimiter($userData['user_id']);
 
     if (isset($_GET['action']) && $_GET['action'] === 'delete') {
 
@@ -54,7 +61,6 @@ else if($_SERVER['REQUEST_METHOD'] =='PATCH'){
         RestoreProduct($_GET['id']);
 
     } else{
-        requireRole(['admin','editor']);
          $userData = requireRole(['admin', 'editor']);
          $data = json_decode(file_get_contents('php://input'), true);
          validateFields($data, ['product_id']);
